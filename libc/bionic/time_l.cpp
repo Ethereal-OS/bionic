@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 The Android Open Source Project
+ * Copyright (C) 2022 The Android Open Source Project
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,9 @@
  * SUCH DAMAGE.
  */
 
-#include <string>
+#include <time.h>
+//#include <xlocale.h>
 
-#include <android-base/file.h>
-
-#include "linker.h"
-
-bool get_transparent_hugepages_supported() {
-  static bool transparent_hugepages_supported = []() {
-    std::string enabled;
-    if (!android::base::ReadFileToString("/sys/kernel/mm/transparent_hugepage/enabled", &enabled)) {
-      return false;
-    }
-    return enabled.find("[never]") == std::string::npos;
-  }();
-  return transparent_hugepages_supported;
+char* strptime_l(const char* buf, const char* fmt, struct tm* tm, locale_t) {
+  return strptime(buf, fmt, tm);
 }

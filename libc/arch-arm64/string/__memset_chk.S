@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021 The Android Open Source Project
+ * Copyright (C) 2017 The Android Open Source Project
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,22 @@
  * SUCH DAMAGE.
  */
 
-#include <string>
+#include <private/bionic_asm.h>
 
-#include <android-base/file.h>
+ENTRY(__memset_chk)
+  cmp x2, x3
+  // Direct b.ls memcpy may not have enough range
+  b.hi .L_memset_chk_fail
+  b memset
 
-#include "linker.h"
+.L_memset_chk_fail:
+  // Preserve for accurate backtrace.
+  stp x29, x30, [sp, -16]!
+  .cfi_def_cfa_offset 16
+  .cfi_rel_offset x29, 0
+  .cfi_rel_offset x30, 8
 
-bool get_transparent_hugepages_supported() {
-  static bool transparent_hugepages_supported = []() {
-    std::string enabled;
-    if (!android::base::ReadFileToString("/sys/kernel/mm/transparent_hugepage/enabled", &enabled)) {
-      return false;
-    }
-    return enabled.find("[never]") == std::string::npos;
-  }();
-  return transparent_hugepages_supported;
-}
+  bl __memset_chk_fail
+END(__memset_chk)
+
+NOTE_GNU_PROPERTY()

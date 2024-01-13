@@ -399,6 +399,9 @@ void debug_get_malloc_leak_info(uint8_t** info, size_t* overall_size, size_t* in
 
 void debug_free_malloc_leak_info(uint8_t* info) {
   g_dispatch->free(info);
+  // Purge the memory that was freed since a significant amount of
+  // memory could have been allocated and freed.
+  g_dispatch->mallopt(M_PURGE, 0);
 }
 
 size_t debug_malloc_usable_size(void* pointer) {
@@ -890,10 +893,9 @@ int debug_malloc_iterate(uintptr_t base, size_t size, void (*callback)(uintptr_t
                   void* arg) {
   ScopedConcurrentLock lock;
   if (g_debug->TrackPointers()) {
-    // Since malloc is disabled, don't bother acquiring any locks.
-    for (auto it = PointerData::begin(); it != PointerData::end(); ++it) {
-      callback(it->first, InternalMallocUsableSize(reinterpret_cast<void*>(it->first)), arg);
-    }
+    PointerData::IteratePointers([&callback, &arg](uintptr_t pointer) {
+      callback(pointer, InternalMallocUsableSize(reinterpret_cast<void*>(pointer)), arg);
+    });
     return 0;
   }
 
@@ -975,6 +977,10 @@ static void write_dump(int fd) {
     dprintf(fd, "%s", content.c_str());
   }
   dprintf(fd, "END\n");
+
+  // Purge the memory that was allocated and freed during this operation
+  // since it can be large enough to expand the RSS significantly.
+  g_dispatch->mallopt(M_PURGE, 0);
 }
 
 bool debug_write_malloc_leak_info(FILE* fp) {

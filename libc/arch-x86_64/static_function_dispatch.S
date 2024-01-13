@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2022 The Android Open Source Project
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,12 +26,12 @@
  * SUCH DAMAGE.
  */
 
-// Prototype: void *memcpy (void *dst, const void *src, size_t count).
-
 #include <private/bionic_asm.h>
 
-ENTRY(__memcpy)
-  #include "memcpy_base.S"
-END(__memcpy)
+#define FUNCTION_DELEGATE(name, impl) \
+ENTRY(name); \
+    jmp impl; \
+END(name)
 
-NOTE_GNU_PROPERTY()
+FUNCTION_DELEGATE(memset, memset_generic)
+FUNCTION_DELEGATE(__memset_chk, __memset_chk_generic)
