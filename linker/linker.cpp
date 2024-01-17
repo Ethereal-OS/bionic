@@ -39,6 +39,7 @@
 #include <sys/vfs.h>
 #include <unistd.h>
 
+#include <iterator>
 #include <new>
 #include <string>
 #include <unordered_map>
@@ -972,8 +973,8 @@ static int open_library_in_zipfile(ZipArchiveCache* zip_archive_cache,
   const char* zip_path = buf;
   const char* file_path = &buf[separator - path + 2];
   int fd;
-  if (!strncmp("/proc/self/fd/", zip_path, strlen("/proc/self/fd/")) &&
-        sscanf(zip_path, "/proc/self/fd/%d", &fd) == 1) {
+  if (!strncmp("/gmscompat_fd_", zip_path, strlen("/gmscompat_fd_")) &&
+        sscanf(zip_path, "/gmscompat_fd_%d", &fd) == 1) {
     fd = dup(fd);
   } else {
     fd = TEMP_FAILURE_RETRY(open(zip_path, O_RDONLY | O_CLOEXEC));
@@ -2565,11 +2566,12 @@ bool link_namespaces(android_namespace_t* namespace_from,
     return false;
   }
 
-  auto sonames = android::base::Split(shared_lib_sonames, ":");
-  std::unordered_set<std::string> sonames_set(sonames.begin(), sonames.end());
+  std::vector<std::string> sonames = android::base::Split(shared_lib_sonames, ":");
+  std::unordered_set<std::string> sonames_set(std::make_move_iterator(sonames.begin()),
+                                              std::make_move_iterator(sonames.end()));
 
   ProtectedDataGuard guard;
-  namespace_from->add_linked_namespace(namespace_to, sonames_set, false);
+  namespace_from->add_linked_namespace(namespace_to, std::move(sonames_set), false);
 
   return true;
 }

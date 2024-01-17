@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2022 The Android Open Source Project
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,12 +26,11 @@
  * SUCH DAMAGE.
  */
 
-// Prototype: void *memcpy (void *dst, const void *src, size_t count).
+#include <string.h>
 
-#include <private/bionic_asm.h>
-
-ENTRY(memcpy_opt)
-  #include "memcpy_neon.S"
-END(memcpy_opt)
-
-NOTE_GNU_PROPERTY()
+void* memset_explicit(void* __dst, int __ch, size_t __n) {
+  void* result = memset(__dst, __ch, __n);
+  // https://bugs.llvm.org/show_bug.cgi?id=15495
+  __asm__ __volatile__("" : : "r"(__dst) : "memory");
+  return result;
+}

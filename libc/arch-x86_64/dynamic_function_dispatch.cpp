@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * Copyright (C) 2022 The Android Open Source Project
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,12 +26,24 @@
  * SUCH DAMAGE.
  */
 
-// Prototype: void *memcpy (void *dst, const void *src, size_t count).
+#include <stddef.h>
 
-#include <private/bionic_asm.h>
+#include <private/bionic_ifuncs.h>
 
-ENTRY(__memcpy)
-  #include "memcpy_base.S"
-END(__memcpy)
+extern "C" {
 
-NOTE_GNU_PROPERTY()
+typedef int memset_func(void* __dst, int __ch, size_t __n);
+DEFINE_IFUNC_FOR(memset) {
+  __builtin_cpu_init();
+  if (__builtin_cpu_supports("avx2")) RETURN_FUNC(memset_func, memset_avx2);
+  RETURN_FUNC(memset_func, memset_generic);
+}
+
+typedef void* __memset_chk_func(void* s, int c, size_t n, size_t n2);
+DEFINE_IFUNC_FOR(__memset_chk) {
+  __builtin_cpu_init();
+  if (__builtin_cpu_supports("avx2")) RETURN_FUNC(__memset_chk_func, __memset_chk_avx2);
+  RETURN_FUNC(__memset_chk_func, __memset_chk_generic);
+}
+
+}  // extern "C"
